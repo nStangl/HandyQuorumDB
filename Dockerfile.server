@@ -1,0 +1,24 @@
+FROM golang:1.20-alpine AS builder
+
+WORKDIR /app
+
+COPY go.* ./
+
+RUN go mod download
+
+COPY . .
+
+RUN GOOS=linux \
+    GOARCH=amd64 \
+    CGO_ENABLED=0 \
+    go build -ldflags "-s -w" -o bin/server-linux-amd64 cmd/server/main.go
+
+# ---
+
+FROM gcr.io/distroless/base-debian11
+
+COPY --from=builder /app/bin/server-linux-amd64 /
+
+EXPOSE 8080
+
+ENTRYPOINT ["/server-linux-amd64"]
